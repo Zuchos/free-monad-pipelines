@@ -5,15 +5,28 @@ import org.zuchos.free_monad_pipelines.model.TableMetadata
 
 object PipelinePlan {
 
-  private def detectAndTransformDateColumns(tableName: String, metadata: TableMetadata): PlanAction[Unit] = for {
-    dateColumns <- profileTable(DateColumnsDetector(tableName, metadata.columns))
-    _ <- transformTable(DateColumnTransformer(tableName, dateColumns))
-  } yield ()
+  final case class TableProfile(nullRatios: Map[String, Double])
+  object DataProfile {
+    val empty = DataProfile(Map.empty)
+  }
+  final case class DataProfile(tableProfiles: Map[String, TableProfile])
 
-  val planForAllTables: PlanAction[Unit] = for {
+  private def pipelineForSingleTable(tableName: String, metadata: TableMetadata): PipelineAction[TableProfile] = {
+    for {
+      dateColumns <- profileTable(DateColumnsDetector(tableName, metadata.columns))
+      _ <- if (dateColumns.nonEmpty) {
+        transformTable(DateColumnTransformer(tableName, dateColumns))
+      } else {
+        noOpAction
+      }
+      nullColumnRatios <- profileTable(NullRatioCalculator(tableName, metadata.columns))
+    } yield TableProfile(nullColumnRatios)
+  }
+
+  val planForAllTables: PipelineAction[DataProfile] = for {
     tableMetadata <- getMetadata
-    _ <- tableMetadata.toList.traverse {
-      case (tableName, metadata) => detectAndTransformDateColumns(tableName, metadata)
+    tableProfiles <- tableMetadata.toList.traverse {
+      case (tableName, metadata) => pipelineForSingleTable(tableName, metadata).map(tableName -> _)
     }
-  } yield ()
+  } yield DataProfile(tableProfiles.toMap)
 }

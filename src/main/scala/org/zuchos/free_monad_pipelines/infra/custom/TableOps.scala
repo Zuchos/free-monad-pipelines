@@ -1,12 +1,17 @@
 package org.zuchos.free_monad_pipelines.infra.custom
 
-import cats.data.StateT
+import cats.data.{ StateT, WriterT }
 import cats.effect.IO
-import org.zuchos.free_monad_pipelines.{ ProfilingOps, TransformerOps }
+import org.zuchos.free_monad_pipelines.{ ProfilingOps, TransformerOps, plan }
 import org.zuchos.free_monad_pipelines.model.{ DataModel, TableMetadata }
-import org.zuchos.free_monad_pipelines.plan.{ DateColumnTransformer, DateColumnsDetector, TableProfiler, TableTransformer }
-
-import java.text.SimpleDateFormat
+import org.zuchos.free_monad_pipelines.plan.{
+  DateColumnTransformer,
+  DateColumnsDetector,
+  ExecutionJournal,
+  NullRatioCalculator,
+  TableProfiler,
+  TableTransformer
+}
 
 object TableOps {
 
@@ -18,7 +23,17 @@ object TableOps {
     }
   }
 
-  type PlanMonad[A] = StateT[IO, DataModel[Table], A]
+  class NullRatioCalculator(tableName: String, nullableColumns: Map[String, String]) {
+    def calculate(dataModel: DataModel[Table]): Map[String, Double] = {
+      dataModel.data(tableName).columns.filter(p => nullableColumns.contains(p._1)).map {
+        case (columnName, columnValues) if columnValues.nonEmpty => columnName -> (columnValues.count(_ == null) / columnValues.size.toDouble)
+        case (columnName, _)                                     => columnName -> Double.NaN
+      }
+    }
+  }
+
+  type PlanState[A] = StateT[IO, DataModel[Table], A]
+  type PlanMonad[A] = WriterT[PlanState, ExecutionJournal, A]
 
   val ioTransformerOps = new TransformerOps[IO, Table] {
     val format = new java.text.SimpleDateFormat("yyyy-MM-dd")
@@ -43,23 +58,28 @@ object TableOps {
     }
   }
 
+  implicit class ExecutionPlanResultSyntax[A](io: IO[A]) {
+    def liftToPlanMonad: PlanMonad[A] = WriterT.liftF[PlanState, ExecutionJournal, A](StateT.liftF(io))
+  }
+
   implicit val transformerOps = new TransformerOps[PlanMonad, Table] {
     override def applyTransformation(dataModel: DataModel[Table], tableTransformer: TableTransformer): PlanMonad[DataModel[Table]] = {
-      StateT.liftF(ioTransformerOps.applyTransformation(dataModel, tableTransformer))
+      ioTransformerOps.applyTransformation(dataModel, tableTransformer).liftToPlanMonad
     }
   }
 
   val ioProfilingOps: ProfilingOps[IO, Table] = new ProfilingOps[IO, Table] {
     override def applyProfiling[A](dataModel: DataModel[Table], tableProfiler: TableProfiler[A]): IO[A] = {
       tableProfiler match {
-        case dd: DateColumnsDetector => IO.pure(new TableDateColumnsDetector(dd.tableName, dd.allColumns).detect(dataModel))
+        case dd: plan.DateColumnsDetector => IO.pure(new TableDateColumnsDetector(dd.tableName, dd.allColumns).detect(dataModel))
+        case dd: plan.NullRatioCalculator => IO.pure(new NullRatioCalculator(dd.tableName, dd.nullableColumns).calculate(dataModel))
       }
     }
   }
 
   implicit val profilingOps: ProfilingOps[PlanMonad, Table] = new ProfilingOps[PlanMonad, Table] {
     override def applyProfiling[A](dataModel: DataModel[Table], tableProfiler: TableProfiler[A]): PlanMonad[A] = {
-      StateT.liftF(ioProfilingOps.applyProfiling(dataModel, tableProfiler))
+      ioProfilingOps.applyProfiling(dataModel, tableProfiler).liftToPlanMonad
     }
   }
 }

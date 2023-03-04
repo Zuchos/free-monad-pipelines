@@ -1,35 +1,60 @@
 package org.zuchos.free_monad_pipelines
 
-import cats.Applicative
+import cats.{ Applicative, Monoid }
 import cats.free.Free
 import org.zuchos.free_monad_pipelines.model._
 
 package object plan {
 
-  sealed trait PlanStage[StageResult]
-  type PlanAction[ActionResult] = Free[PlanStage, ActionResult]
+  final case class ExecutionJournal(
+      stages: List[PipelineStage[_]] = List.empty
+  )
 
-  case object GetMetadata extends PlanStage[Map[String, TableMetadata]]
+  object ExecutionJournal {
+    def apply(stage: PipelineStage[_]): ExecutionJournal = {
+      new ExecutionJournal(List(stage))
+    }
+    implicit val executionJournalMonoid: Monoid[ExecutionJournal] = new Monoid[ExecutionJournal] {
+      override def empty: ExecutionJournal = ExecutionJournal(List.empty)
 
-  sealed trait TableTransformer extends PlanStage[Unit]
+      override def combine(x: ExecutionJournal, y: ExecutionJournal): ExecutionJournal =
+        ExecutionJournal(x.stages ++ y.stages)
+    }
+  }
+
+  //region A
+  sealed trait PipelineStage[StageResult]
+  //endregion
+  type PipelineAction[StageResult] = Free[PipelineStage, StageResult]
+
+  case object GetMetadata extends PipelineStage[Map[String, TableMetadata]]
+  sealed trait TableProfiler[ProfilingResult] extends PipelineStage[ProfilingResult]
+  sealed trait TableTransformer extends PipelineStage[Unit]
+
+  //region ActualTransformersAndProfiles
   case class DateColumnTransformer(tableName: String, dateColumns: Set[String]) extends TableTransformer
 
-  sealed trait TableProfiler[ProfilingResult] extends PlanStage[ProfilingResult]
   case class DateColumnsDetector(tableName: String, allColumns: Map[String, String]) extends TableProfiler[Set[String]]
+  case class NullRatioCalculator(tableName: String, nullableColumns: Map[String, String]) extends TableProfiler[Map[String, Double]]
+  //endregion
 
-  def getMetadata: PlanAction[Map[String, TableMetadata]] = {
-    Free.liftF[PlanStage, Map[String, TableMetadata]](GetMetadata)
+  def getMetadata: PipelineAction[Map[String, TableMetadata]] = {
+    Free.liftF[PipelineStage, Map[String, TableMetadata]](GetMetadata)
   }
 
-  def pure[A](a: A): PlanAction[A] = {
-    Applicative[PlanAction].pure(a)
+  def pure[A](a: A): PipelineAction[A] = {
+    Applicative[PipelineAction].pure(a)
   }
 
-  def transformTable(tableTransformer: TableTransformer): PlanAction[Unit] = {
-    Free.liftF(tableTransformer)
+  def noOpAction[A]: PipelineAction[Unit] = {
+    Applicative[PipelineAction].pure(())
   }
 
-  def profileTable[ProfilerResult](tableProfiler: TableProfiler[ProfilerResult]): PlanAction[ProfilerResult] = {
+  def transformTable(tableTransformer: TableTransformer): PipelineAction[Unit] = {
+    Free.liftF[PipelineStage, Unit](tableTransformer)
+  }
+
+  def profileTable[ProfilerResult](tableProfiler: TableProfiler[ProfilerResult]): PipelineAction[ProfilerResult] = {
     Free.liftF(tableProfiler)
   }
 }
