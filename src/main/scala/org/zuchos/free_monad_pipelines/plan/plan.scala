@@ -42,11 +42,11 @@ package object plan {
     Free.liftF[PipelineStage, Map[String, TableMetadata]](GetMetadata)
   }
 
-  def pure[A](a: A): PipelineAction[A] = {
+  private def pure[A](a: A): PipelineAction[A] = {
     Applicative[PipelineAction].pure(a)
   }
 
-  def noOpAction[A]: PipelineAction[Unit] = {
+  def noOpAction: PipelineAction[Unit] = {
     Applicative[PipelineAction].pure(())
   }
 
@@ -56,5 +56,13 @@ package object plan {
 
   def profileTable[ProfilerResult](tableProfiler: TableProfiler[ProfilerResult]): PipelineAction[ProfilerResult] = {
     Free.liftF(tableProfiler)
+  }
+
+  def liftToTransformationPlan(stages: List[PipelineStage[_]]): PipelineAction[Unit] = {
+    stages.foldLeft(plan.pure(())) {
+      case (previousStage, tableTransformer: TableTransformer) =>
+        previousStage.flatMap(_ => Free.liftF[PipelineStage, Unit](tableTransformer))
+      case (previousStage, _) => previousStage
+    }
   }
 }

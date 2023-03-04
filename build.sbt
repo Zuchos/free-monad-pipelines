@@ -29,8 +29,12 @@ val catsFree = "org.typelevel"   %% "cats-free"   % catsVersion
 val catsEffect = "org.typelevel" %% "cats-effect" % "3.4.8"
 val catsMtl = "org.typelevel"    %% "cats-mtl"    % "1.3.0"
 
+//import scala logging
+val scalaLogging = "com.typesafe.scala-logging" %% "scala-logging" % "3.9.4"
+
 libraryDependencies += "org.scala-lang.modules" %% "scala-parser-combinators" % "2.1.1"
 libraryDependencies ++= Seq(catsCore, catsFree, catsEffect, catsMtl)
+libraryDependencies ++= Seq(scalaLogging)
 
 // Here, `libraryDependencies` is a set of dependencies, and by using `+=`,
 // we're adding the scala-parser-combinators dependency to the set of dependencies
