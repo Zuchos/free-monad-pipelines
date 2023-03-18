@@ -19,7 +19,7 @@ package object plan {
 
   //region Actual transformers and profiles
 
-  case class NullRatioCalculator(tableName: String, nullableColumns: Map[ColumnName, ColumnType]) extends TableProfiler[Map[ColumnName, Double]]
+  case class NullRatioCalculator(tableName: String, nullableColumns: Set[ColumnName]) extends TableProfiler[Map[ColumnName, Double]]
   case class DateColumnsDetector(tableName: String, allColumns: Map[ColumnName, ColumnType]) extends TableProfiler[Set[ColumnName]]
 
   case class DateColumnTransformer(tableName: String, dateColumns: Set[ColumnName]) extends TableTransformer

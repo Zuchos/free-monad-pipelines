@@ -7,9 +7,7 @@ import org.zuchos.free_monad_pipelines.{ ProfilingOps, TransformerOps, plan }
 import org.zuchos.free_monad_pipelines.model.{ DataModel, TableMetadata }
 import org.zuchos.free_monad_pipelines.plan.{
   DateColumnTransformer,
-  DateColumnsDetector,
   ExecutionJournal,
-  NullRatioCalculator,
   TableProfiler,
   TableTransformer
 }
@@ -24,7 +22,7 @@ object TableOps {
     }
   }
 
-  class NullRatioCalculator(tableName: String, nullableColumns: Map[ColumnName, ColumnType]) {
+  class NullRatioCalculator(tableName: String, nullableColumns: Set[ColumnName]) {
     def calculate(dataModel: DataModel[Table]): Map[String, Double] = {
       dataModel.data(tableName).columns.filter(p => nullableColumns.contains(p._1)).map {
         case (columnName, columnValues) if columnValues.nonEmpty => columnName -> (columnValues.count(_ == null) / columnValues.size.toDouble)
@@ -46,7 +44,10 @@ object TableOps {
             case p                                             => p
           }
           val updatedTable = Table(dataModel.data(tableName).columns.map {
-            case (colName, columnData) if dateColumns.contains(colName) => colName -> columnData.map { case s: String => format.parse(s) }
+            case (colName, columnData) if dateColumns.contains(colName) => colName -> columnData.map {
+              case s: String => format.parse(s)
+              case null => null
+            }
             case p                                                      => p
           })
           IO.pure(

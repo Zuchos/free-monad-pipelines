@@ -24,7 +24,7 @@ object PipelinePlan {
       } else {
         noOpAction
       }
-      nullColumnRatios <- profileTable(NullRatioCalculator(tableName, metadata.columns))
+      nullColumnRatios <- profileTable(NullRatioCalculator(tableName, metadata.columns.keySet))
     } yield TableProfile(nullColumnRatios)
   }
 

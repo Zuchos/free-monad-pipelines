@@ -4,11 +4,11 @@ import org.zuchos.free_monad_pipelines.{ PipelinePlanCompiler, plan }
 import org.zuchos.free_monad_pipelines.model.{ DataModel, TableMetadata }
 import org.zuchos.free_monad_pipelines.plan.{ PipelineAction, PipelinePlan, liftToTransformationPlan }
 
-object Main extends App {
+object MainInMemory extends App {
   {
     val table1 = "customers_table"
     val table2 = "products_table"
-
+    println("-----------Training Pipeline----------------------")
     //region "Training" pipeline
 
     val planForAllTables: PipelineAction[PipelinePlan.DataProfile] = PipelinePlan.planForAllTables
@@ -29,7 +29,7 @@ object Main extends App {
 
     //result of "Training" pipeline
     val (
-      updatedDataModel: DataModel[Table] /* from State */,
+      dataModelAfterTraining: DataModel[Table] /* from State */,
       (
         executionJournal: plan.ExecutionJournal /* from Writer aka Journal */,
         profile: PipelinePlan.DataProfile /* "A" */
@@ -37,9 +37,10 @@ object Main extends App {
     ) = compiledPipelinePlan.run.run(dataModelInTraining).unsafeRunSync()
 
     println(executionJournal)
-    println(updatedDataModel)
+    println(dataModelAfterTraining)
     println(profile)
     //endregion
+    println("-----------Prediction Pipeline--------------------")
     //region "Prediction" pipeline
 
     val dataModelInPrediction: DataModel[Table] = new DataModel[Table](
@@ -58,5 +59,6 @@ object Main extends App {
     val (transformedDataModelInPrediction, _) = transformationPlan.foldMap(planCompiler).run.run(dataModelInPrediction).unsafeRunSync()
     println(transformedDataModelInPrediction)
     //endregion
+    println("--------------------------------------------------")
   }
 }
