@@ -2,6 +2,7 @@ package org.zuchos.free_monad_pipelines.infra.custom
 
 import cats.data.{ StateT, WriterT }
 import cats.effect.IO
+import org.zuchos.free_monad_pipelines.model.TableMetadata.{ ColumnName, ColumnType }
 import org.zuchos.free_monad_pipelines.{ ProfilingOps, TransformerOps, plan }
 import org.zuchos.free_monad_pipelines.model.{ DataModel, TableMetadata }
 import org.zuchos.free_monad_pipelines.plan.{
@@ -15,15 +16,15 @@ import org.zuchos.free_monad_pipelines.plan.{
 
 object TableOps {
 
-  case class Table(columns: Map[String, List[Any]])
+  case class Table(columns: Map[ColumnName, List[Any]])
 
-  class TableDateColumnsDetector(tableName: String, allColumns: Map[String, String]) {
+  class TableDateColumnsDetector(tableName: String, allColumns: Map[ColumnName, ColumnType]) {
     def detect(dataModel: DataModel[Table]): Set[String] = {
       dataModel.metadata(tableName).columns.filter(_._2 == "string").keySet
     }
   }
 
-  class NullRatioCalculator(tableName: String, nullableColumns: Map[String, String]) {
+  class NullRatioCalculator(tableName: String, nullableColumns: Map[ColumnName, ColumnType]) {
     def calculate(dataModel: DataModel[Table]): Map[String, Double] = {
       dataModel.data(tableName).columns.filter(p => nullableColumns.contains(p._1)).map {
         case (columnName, columnValues) if columnValues.nonEmpty => columnName -> (columnValues.count(_ == null) / columnValues.size.toDouble)

@@ -1,20 +1,22 @@
 import cats.effect.unsafe.implicits.global
-import org.zuchos.free_monad_pipelines.infra.custom.TableOps.{ PlanMonad, Table }
-import org.zuchos.free_monad_pipelines.{ PlanCompiler, plan }
+import org.zuchos.free_monad_pipelines.infra.custom.TableOps._
+import org.zuchos.free_monad_pipelines.{ PipelinePlanCompiler, plan }
 import org.zuchos.free_monad_pipelines.model.{ DataModel, TableMetadata }
 import org.zuchos.free_monad_pipelines.plan.{ PipelineAction, PipelinePlan, liftToTransformationPlan }
 
 object Main extends App {
   {
-
     val table1 = "customers_table"
     val table2 = "products_table"
 
-    val planForAllTables: PipelineAction[PipelinePlan.DataProfile] = PipelinePlan.planForAllTables
-    val planCompiler: PlanCompiler[PlanMonad, Table] = new PlanCompiler[PlanMonad, Table]()
-    val compiledPipelinePlan: PlanMonad[PipelinePlan.DataProfile] = planForAllTables.foldMap(planCompiler)
+    //region "Training" pipeline
 
-    val dataModel: DataModel[Table] = new DataModel[Table](
+    val planForAllTables: PipelineAction[PipelinePlan.DataProfile] = PipelinePlan.planForAllTables
+    val planCompiler: PipelinePlanCompiler[PlanMonad, Table] = new PipelinePlanCompiler[PlanMonad, Table]()
+    val compiledPipelinePlan: PlanMonad[PipelinePlan.DataProfile] = planForAllTables.foldMap(planCompiler)
+    // PlanMonad[PipelinePlan.DataProfile] ==
+    //  WriterT[StateT[IO, DataModel[Table], PipelinePlan.DataProfile], ExecutionJournal, PipelinePlan.DataProfile]
+    val dataModelInTraining: DataModel[Table] = new DataModel[Table](
       metadata = Map(
         table1 -> TableMetadata(Map("date_column" -> "string")),
         table2 -> TableMetadata(Map("product_id" -> "int"))
@@ -25,25 +27,36 @@ object Main extends App {
       )
     )
 
+    //result of "Training" pipeline
     val (
       updatedDataModel: DataModel[Table] /* from State */,
       (
-        executionPlan: plan.ExecutionJournal /* from Writer aka Journal */,
+        executionJournal: plan.ExecutionJournal /* from Writer aka Journal */,
         profile: PipelinePlan.DataProfile /* "A" */
       )
-    ) = compiledPipelinePlan.run
-      .run(
-        dataModel
-      )
-      .unsafeRunSync()
+    ) = compiledPipelinePlan.run.run(dataModelInTraining).unsafeRunSync()
 
-    println(executionPlan)
+    println(executionJournal)
     println(updatedDataModel)
     println(profile)
+    //endregion
+    //region "Prediction" pipeline
 
-    val transformationPlan = liftToTransformationPlan(executionPlan.stages)
+    val dataModelInPrediction: DataModel[Table] = new DataModel[Table](
+      metadata = Map(
+        table1 -> TableMetadata(Map("date_column" -> "string")),
+        table2 -> TableMetadata(Map("product_id" -> "int"))
+      ),
+      data = Map(
+        table1 -> Table(Map("date_column" -> List("2023-03-28", null, null, "2023-03-29"))),
+        table2 -> Table(Map("product_id" -> List(123, null, null, 42)))
+      )
+    )
 
-    val (transformedDataModel, _) = transformationPlan.foldMap(planCompiler).run.run(dataModel).unsafeRunSync()
-    println(transformedDataModel)
+    val transformationPlan: PipelineAction[Unit] = liftToTransformationPlan(executionJournal.stages)
+
+    val (transformedDataModelInPrediction, _) = transformationPlan.foldMap(planCompiler).run.run(dataModelInPrediction).unsafeRunSync()
+    println(transformedDataModelInPrediction)
+    //endregion
   }
 }

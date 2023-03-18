@@ -2,16 +2,21 @@ package org.zuchos.free_monad_pipelines.plan
 
 import cats.implicits._
 import org.zuchos.free_monad_pipelines.model.TableMetadata
+import org.zuchos.free_monad_pipelines.model.TableMetadata.{ColumnName, TableName}
 
 object PipelinePlan {
 
-  final case class TableProfile(nullRatios: Map[String, Double])
+  //region details
+
+  final case class TableProfile(nullRatios: Map[ColumnName, Double])
   object DataProfile {
     val empty = DataProfile(Map.empty)
   }
-  final case class DataProfile(tableProfiles: Map[String, TableProfile])
+  final case class DataProfile(tableProfiles: Map[TableName, TableProfile])
 
-  private def pipelineForSingleTable(tableName: String, metadata: TableMetadata): PipelineAction[TableProfile] = {
+  //endregion
+
+  private def pipelineForSingleTable(tableName: TableName, metadata: TableMetadata): PipelineAction[TableProfile] = {
     for {
       dateColumns <- profileTable(DateColumnsDetector(tableName, metadata.columns))
       _ <- if (dateColumns.nonEmpty) {
