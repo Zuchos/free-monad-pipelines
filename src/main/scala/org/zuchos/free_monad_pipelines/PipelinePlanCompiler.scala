@@ -39,7 +39,7 @@ class PipelinePlanCompiler[F[_]: Monad, ActualDataType](
           profilingResult <- profilingOps.applyProfiling(dataModel, profiler)
           _ <- Journal.tell(ExecutionJournal(profiler))
         } yield profilingResult
-      case GetMetadata => State.inspect(_.metadata)
+      case GetMetadata => State.get.map(_.metadata)
     }): F[StageResult]
   }
 

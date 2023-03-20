@@ -10,7 +10,7 @@ import org.zuchos.free_monad_pipelines.plan.{ DateColumnTransformer, ExecutionJo
 import org.apache.spark.sql._
 import org.apache.spark.sql.functions._
 
-object TableOps {
+object DataFrameOps {
 
   class TableDateColumnsDetector(tableName: String, allColumns: Map[ColumnName, ColumnType]) {
     def detect(dataModel: DataModel[DataFrame]): Set[String] = {

@@ -64,7 +64,11 @@ package object plan {
 
   final case class ExecutionJournal(
       stages: List[PipelineStage[_]] = List.empty
-  )
+  ) {
+    override def toString: ColumnName = {
+      "Executed Stages:\n" + stages.map(s => s"\t-$s\n").mkString
+    }
+  }
 
   object ExecutionJournal {
     def apply(stage: PipelineStage[_]): ExecutionJournal = {

@@ -1,4 +1,4 @@
-package org.zuchos.free_monad_pipelines.infra.custom
+package org.zuchos.free_monad_pipelines.infra.in_memory
 
 import cats.data.{ StateT, WriterT }
 import cats.effect.IO

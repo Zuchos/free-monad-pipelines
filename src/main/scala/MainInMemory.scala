@@ -1,5 +1,5 @@
 import cats.effect.unsafe.implicits.global
-import org.zuchos.free_monad_pipelines.infra.custom.TableOps._
+import org.zuchos.free_monad_pipelines.infra.in_memory.TableOps._
 import org.zuchos.free_monad_pipelines.{ PipelinePlanCompiler, plan }
 import org.zuchos.free_monad_pipelines.model.{ DataModel, TableMetadata }
 import org.zuchos.free_monad_pipelines.plan.{ PipelineAction, PipelinePlan, liftToTransformationPlan }

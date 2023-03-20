@@ -1,6 +1,6 @@
 import cats.effect.unsafe.implicits.global
 import org.apache.spark.sql.DataFrame
-import org.zuchos.free_monad_pipelines.infra.spark.TableOps._
+import org.zuchos.free_monad_pipelines.infra.spark.DataFrameOps._
 import org.zuchos.free_monad_pipelines.model.{ DataModel, TableMetadata }
 import org.zuchos.free_monad_pipelines.plan.{ PipelineAction, PipelinePlan, liftToTransformationPlan }
 import org.zuchos.free_monad_pipelines.{ PipelinePlanCompiler, plan }
@@ -83,5 +83,7 @@ object MainSpark extends App {
     printDataModel(transformedDataModelInPrediction)
     //endregion
     println("--------------------------------------------------")
+
+    sparkSession.close()
   }
 }

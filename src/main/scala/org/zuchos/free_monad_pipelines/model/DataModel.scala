@@ -9,4 +9,14 @@ object TableMetadata {
 }
 
 case class TableMetadata(columns: Map[ColumnName, ColumnType])
-case class DataModel[ActualTableType](metadata: Map[TableName, TableMetadata], data: Map[TableName, ActualTableType])
+case class DataModel[ActualTableType](metadata: Map[TableName, TableMetadata], data: Map[TableName, ActualTableType]) {
+  override def toString: ColumnName = {
+    metadata.keySet
+      .map { tableName =>
+        s"Table - $tableName\n" +
+          s"\tMetadata: ${metadata(tableName)}\n" ++
+          s"\tData: ${data(tableName)}"
+      }
+      .mkString("\n\n")
+  }
+}
