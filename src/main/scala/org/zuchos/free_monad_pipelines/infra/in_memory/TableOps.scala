@@ -8,8 +8,8 @@ import org.zuchos.free_monad_pipelines.model.{ DataModel, TableMetadata }
 import org.zuchos.free_monad_pipelines.plan.{
   DateColumnTransformer,
   ExecutionJournal,
-  TableProfiler,
-  TableTransformer
+  Profiler,
+  Transformer
 }
 
 object TableOps {
@@ -36,7 +36,7 @@ object TableOps {
 
   val ioTransformerOps = new TransformerOps[IO, Table] {
     val format = new java.text.SimpleDateFormat("yyyy-MM-dd")
-    override def applyTransformation(dataModel: DataModel[Table], tableTransformer: TableTransformer): IO[DataModel[Table]] = {
+    override def applyTransformation(dataModel: DataModel[Table], tableTransformer: Transformer): IO[DataModel[Table]] = {
       tableTransformer match {
         case DateColumnTransformer(tableName, dateColumns) =>
           val updatedColumns = dataModel.metadata(tableName).columns.map {
@@ -65,13 +65,13 @@ object TableOps {
   }
 
   implicit val transformerOps = new TransformerOps[PlanMonad, Table] {
-    override def applyTransformation(dataModel: DataModel[Table], tableTransformer: TableTransformer): PlanMonad[DataModel[Table]] = {
+    override def applyTransformation(dataModel: DataModel[Table], tableTransformer: Transformer): PlanMonad[DataModel[Table]] = {
       ioTransformerOps.applyTransformation(dataModel, tableTransformer).liftToPlanMonad
     }
   }
 
   val ioProfilingOps: ProfilingOps[IO, Table] = new ProfilingOps[IO, Table] {
-    override def applyProfiling[A](dataModel: DataModel[Table], tableProfiler: TableProfiler[A]): IO[A] = {
+    override def applyProfiling[A](dataModel: DataModel[Table], tableProfiler: Profiler[A]): IO[A] = {
       tableProfiler match {
         case dd: plan.DateColumnsDetector => IO.pure(new TableDateColumnsDetector(dd.tableName, dd.allColumns).detect(dataModel))
         case dd: plan.NullRatioCalculator => IO.pure(new NullRatioCalculator(dd.tableName, dd.nullableColumns).calculate(dataModel))
@@ -80,7 +80,7 @@ object TableOps {
   }
 
   implicit val profilingOps: ProfilingOps[PlanMonad, Table] = new ProfilingOps[PlanMonad, Table] {
-    override def applyProfiling[A](dataModel: DataModel[Table], tableProfiler: TableProfiler[A]): PlanMonad[A] = {
+    override def applyProfiling[A](dataModel: DataModel[Table], tableProfiler: Profiler[A]): PlanMonad[A] = {
       ioProfilingOps.applyProfiling(dataModel, tableProfiler).liftToPlanMonad
     }
   }

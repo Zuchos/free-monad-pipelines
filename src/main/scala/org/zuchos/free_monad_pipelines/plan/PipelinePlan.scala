@@ -26,13 +26,13 @@ object PipelinePlan {
 
   private def pipelineForSingleTable(tableName: TableName, metadata: TableMetadata): PipelineAction[TableProfile] = {
     for {
-      dateColumns <- profileTable(DateColumnsDetector(tableName, metadata.columns))
+      dateColumns <- profile(DateColumnsDetector(tableName, metadata.columns))
       _ <- if (dateColumns.nonEmpty) {
-        transformTable(DateColumnTransformer(tableName, dateColumns))
+        transform(DateColumnTransformer(tableName, dateColumns))
       } else {
         noOpAction
       }
-      nullColumnRatios <- profileTable(NullRatioCalculator(tableName, metadata.columns.keySet))
+      nullColumnRatios <- profile(NullRatioCalculator(tableName, metadata.columns.keySet))
     } yield TableProfile(nullColumnRatios)
   }
 

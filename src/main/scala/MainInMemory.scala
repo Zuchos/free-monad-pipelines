@@ -31,7 +31,7 @@ object MainInMemory extends App {
     val (
       dataModelAfterTraining: DataModel[Table] /* from State */,
       (
-        executionJournal: plan.ExecutionJournal /* from Writer aka Journal */,
+        executionJournal: plan.ExecutionJournal /* from Writer aka AuditLog aka Journal */,
         profile: PipelinePlan.DataProfile /* "A" */
       )
     ) = compiledPipelinePlan.run.run(dataModelInTraining).unsafeRunSync()
@@ -54,9 +54,9 @@ object MainInMemory extends App {
       )
     )
 
-    val transformationPlan: PipelineAction[Unit] = liftToTransformationPlan(executionJournal.stages)
+    val predictionPlan: PipelineAction[Unit] = liftToTransformationPlan(executionJournal.stages)
 
-    val (transformedDataModelInPrediction, _) = transformationPlan.foldMap(planCompiler).run.run(dataModelInPrediction).unsafeRunSync()
+    val (transformedDataModelInPrediction, _) = predictionPlan.foldMap(planCompiler).run.run(dataModelInPrediction).unsafeRunSync()
     println(transformedDataModelInPrediction)
     //endregion
     println("--------------------------------------------------")

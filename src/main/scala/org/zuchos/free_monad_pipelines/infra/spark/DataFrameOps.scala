@@ -5,7 +5,7 @@ import cats.effect.IO
 import org.zuchos.free_monad_pipelines.model.TableMetadata.{ ColumnName, ColumnType }
 import org.zuchos.free_monad_pipelines.{ ProfilingOps, TransformerOps, plan }
 import org.zuchos.free_monad_pipelines.model.{ DataModel, TableMetadata }
-import org.zuchos.free_monad_pipelines.plan.{ DateColumnTransformer, ExecutionJournal, TableProfiler, TableTransformer }
+import org.zuchos.free_monad_pipelines.plan.{ DateColumnTransformer, ExecutionJournal, Profiler, Transformer }
 
 import org.apache.spark.sql._
 import org.apache.spark.sql.functions._
@@ -42,7 +42,7 @@ object DataFrameOps {
   type PlanMonad[A] = WriterT[PlanState, ExecutionJournal, A]
 
   val ioTransformerOps = new TransformerOps[IO, DataFrame] {
-    override def applyTransformation(dataModel: DataModel[DataFrame], tableTransformer: TableTransformer): IO[DataModel[DataFrame]] = {
+    override def applyTransformation(dataModel: DataModel[DataFrame], tableTransformer: Transformer): IO[DataModel[DataFrame]] = {
       tableTransformer match {
         case DateColumnTransformer(tableName, dateColumns: Set[ColumnName]) =>
           IO {
@@ -68,13 +68,13 @@ object DataFrameOps {
   }
 
   implicit val transformerOps = new TransformerOps[PlanMonad, DataFrame] {
-    override def applyTransformation(dataModel: DataModel[DataFrame], tableTransformer: TableTransformer): PlanMonad[DataModel[DataFrame]] = {
+    override def applyTransformation(dataModel: DataModel[DataFrame], tableTransformer: Transformer): PlanMonad[DataModel[DataFrame]] = {
       ioTransformerOps.applyTransformation(dataModel, tableTransformer).liftToPlanMonad
     }
   }
 
   val ioProfilingOps: ProfilingOps[IO, DataFrame] = new ProfilingOps[IO, DataFrame] {
-    override def applyProfiling[A](dataModel: DataModel[DataFrame], tableProfiler: TableProfiler[A]): IO[A] = {
+    override def applyProfiling[A](dataModel: DataModel[DataFrame], tableProfiler: Profiler[A]): IO[A] = {
       tableProfiler match {
         case dd: plan.DateColumnsDetector => IO(new TableDateColumnsDetector(dd.tableName, dd.allColumns).detect(dataModel))
         case dd: plan.NullRatioCalculator => IO(new NullRatioCalculator(dd.tableName, dd.nullableColumns).calculate(dataModel))
@@ -83,7 +83,7 @@ object DataFrameOps {
   }
 
   implicit val profilingOps: ProfilingOps[PlanMonad, DataFrame] = new ProfilingOps[PlanMonad, DataFrame] {
-    override def applyProfiling[A](dataModel: DataModel[DataFrame], tableProfiler: TableProfiler[A]): PlanMonad[A] = {
+    override def applyProfiling[A](dataModel: DataModel[DataFrame], tableProfiler: Profiler[A]): PlanMonad[A] = {
       ioProfilingOps.applyProfiling(dataModel, tableProfiler).liftToPlanMonad
     }
   }

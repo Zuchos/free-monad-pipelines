@@ -2,7 +2,7 @@ package org.zuchos.free_monad_pipelines
 
 import cats.{ Applicative, Monoid }
 import cats.free.Free
-import org.zuchos.free_monad_pipelines.model.TableMetadata.{ ColumnName, ColumnType }
+import org.zuchos.free_monad_pipelines.model.TableMetadata.{ ColumnName, ColumnType, TableName }
 import org.zuchos.free_monad_pipelines.model._
 
 package object plan {
@@ -11,18 +11,19 @@ package object plan {
 
   sealed trait PipelineStage[StageResult]
 
-  case object GetMetadata extends PipelineStage[Map[String, TableMetadata]]
-  sealed trait TableProfiler[ProfilingResult] extends PipelineStage[ProfilingResult]
-  sealed trait TableTransformer extends PipelineStage[Unit]
+  sealed trait Profiler[DataProfile] extends PipelineStage[DataProfile]
+  sealed trait Transformer extends PipelineStage[Unit]
+
+  case object GetMetadata extends PipelineStage[Map[TableName, TableMetadata]]
 
   //endregion
 
   //region Actual transformers and profiles
 
-  case class NullRatioCalculator(tableName: String, nullableColumns: Set[ColumnName]) extends TableProfiler[Map[ColumnName, Double]]
-  case class DateColumnsDetector(tableName: String, allColumns: Map[ColumnName, ColumnType]) extends TableProfiler[Set[ColumnName]]
+  case class NullRatioCalculator(tableName: String, nullableColumns: Set[ColumnName]) extends Profiler[Map[ColumnName, Double]]
+  case class DateColumnsDetector(tableName: String, allColumns: Map[ColumnName, ColumnType]) extends Profiler[Set[ColumnName]]
 
-  case class DateColumnTransformer(tableName: String, dateColumns: Set[ColumnName]) extends TableTransformer
+  case class DateColumnTransformer(tableName: String, dateColumns: Set[ColumnName]) extends Transformer
 
   //endregion
 
@@ -34,11 +35,11 @@ package object plan {
     Free.liftF[PipelineStage, Map[String, TableMetadata]](GetMetadata)
   }
 
-  def transformTable(tableTransformer: TableTransformer): PipelineAction[Unit] = {
+  def transform(tableTransformer: Transformer): PipelineAction[Unit] = {
     Free.liftF[PipelineStage, Unit](tableTransformer)
   }
 
-  def profileTable[ProfilerResult](tableProfiler: TableProfiler[ProfilerResult]): PipelineAction[ProfilerResult] = {
+  def profile[ProfilerResult](tableProfiler: Profiler[ProfilerResult]): PipelineAction[ProfilerResult] = {
     Free.liftF(tableProfiler)
   }
 
@@ -52,8 +53,8 @@ package object plan {
 
   def liftToTransformationPlan(stages: List[PipelineStage[_]]): PipelineAction[Unit] = {
     stages.foldLeft(pure(())) {
-      case (previousStage, tableTransformer: TableTransformer) =>
-        previousStage.flatMap(_ => transformTable(tableTransformer))
+      case (previousStage, transformer: Transformer) =>
+        previousStage.flatMap(_ => transform(transformer))
       case (previousStage, _) => previousStage
     }
   }

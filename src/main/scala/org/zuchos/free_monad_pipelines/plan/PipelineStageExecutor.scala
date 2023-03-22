@@ -10,7 +10,7 @@ class PipelineStageExecutor[F[_]: Monad, ActualDataType](transformerOps: Transfo
   def execute(dataModel: DataModel[ActualDataType], pipelineStages: List[PipelineStage[_]]): F[DataModel[ActualDataType]] = {
     val value: F[DataModel[ActualDataType]] = Applicative.pure(dataModel)
     pipelineStages.foldLeft(value) {
-      case (currentDataWrapped, stage: TableTransformer) =>
+      case (currentDataWrapped, stage: Transformer) =>
         currentDataWrapped.flatMap { currentData => transformerOps.applyTransformation(currentData, stage) }
       case (currentDataWrapped, _) => currentDataWrapped
     }
@@ -25,7 +25,7 @@ class PipelineStageExecutor2[F[_]: Monad, ActualDataType](
     for {
       currentData <- state.get
       updatedData <- fa match {
-        case stage: TableTransformer =>
+        case stage: Transformer =>
           transformerOps.applyTransformation(currentData, stage)
         case _ => Applicative.pure(currentData)
       }
