@@ -36,9 +36,9 @@ class PipelinePlanCompiler[F[_]: Monad, ActualDataType](
       case profiler: Profiler[StageResult] =>
         for {
           dataModel <- State.get
-          profilingResult <- profilingOps.applyProfiling(dataModel, profiler)
+          dataProfile <- profilingOps.applyProfiling(dataModel, profiler)
           _ <- AuditLog.tell(ExecutionJournal(profiler))
-        } yield profilingResult
+        } yield dataProfile
       case GetMetadata => State.get.map(_.metadata)
     }): F[StageResult]
   }
