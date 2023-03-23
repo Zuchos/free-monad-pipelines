@@ -1,8 +1,7 @@
-package org.zuchos.free_monad_pipelines.plan
+package org.zuchos.free_monad_pipelines.domain
 
 import cats.implicits._
-import org.zuchos.free_monad_pipelines.model.TableMetadata
-import org.zuchos.free_monad_pipelines.model.TableMetadata.{ ColumnName, TableName }
+import TableMetadata.{ ColumnName, TableName }
 
 object PipelinePlan {
 

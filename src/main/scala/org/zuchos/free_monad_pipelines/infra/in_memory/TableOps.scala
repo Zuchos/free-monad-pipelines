@@ -2,15 +2,10 @@ package org.zuchos.free_monad_pipelines.infra.in_memory
 
 import cats.data.{ StateT, WriterT }
 import cats.effect.IO
-import org.zuchos.free_monad_pipelines.model.TableMetadata.{ ColumnName, ColumnType }
-import org.zuchos.free_monad_pipelines.{ ProfilingOps, TransformerOps, plan }
-import org.zuchos.free_monad_pipelines.model.{ DataModel, TableMetadata }
-import org.zuchos.free_monad_pipelines.plan.{
-  DateColumnTransformer,
-  ExecutionJournal,
-  Profiler,
-  Transformer
-}
+import org.zuchos.free_monad_pipelines.application.{ProfilingOps, TransformerOps}
+import org.zuchos.free_monad_pipelines.domain.TableMetadata.{ ColumnName, ColumnType }
+import org.zuchos.free_monad_pipelines.domain
+import org.zuchos.free_monad_pipelines.domain.{DataModel, DateColumnTransformer, ExecutionJournal, Profiler, TableMetadata, Transformer}
 
 object TableOps {
 
@@ -73,8 +68,8 @@ object TableOps {
   val ioProfilingOps: ProfilingOps[IO, Table] = new ProfilingOps[IO, Table] {
     override def applyProfiling[A](dataModel: DataModel[Table], tableProfiler: Profiler[A]): IO[A] = {
       tableProfiler match {
-        case dd: plan.DateColumnsDetector => IO.pure(new TableDateColumnsDetector(dd.tableName, dd.allColumns).detect(dataModel))
-        case dd: plan.NullRatioCalculator => IO.pure(new NullRatioCalculator(dd.tableName, dd.nullableColumns).calculate(dataModel))
+        case dd: domain.DateColumnsDetector => IO.pure(new TableDateColumnsDetector(dd.tableName, dd.allColumns).detect(dataModel))
+        case dd: domain.NullRatioCalculator => IO.pure(new NullRatioCalculator(dd.tableName, dd.nullableColumns).calculate(dataModel))
       }
     }
   }

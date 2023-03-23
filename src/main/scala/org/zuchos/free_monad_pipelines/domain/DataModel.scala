@@ -1,6 +1,6 @@
-package org.zuchos.free_monad_pipelines.model
+package org.zuchos.free_monad_pipelines.domain
 
-import org.zuchos.free_monad_pipelines.model.TableMetadata.{ ColumnName, ColumnType, TableName }
+import org.zuchos.free_monad_pipelines.domain.TableMetadata.{ColumnName, ColumnType, TableName}
 
 object TableMetadata {
   type TableName = String

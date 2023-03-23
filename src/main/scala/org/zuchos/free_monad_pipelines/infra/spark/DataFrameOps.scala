@@ -2,13 +2,13 @@ package org.zuchos.free_monad_pipelines.infra.spark
 
 import cats.data.{ StateT, WriterT }
 import cats.effect.IO
-import org.zuchos.free_monad_pipelines.model.TableMetadata.{ ColumnName, ColumnType }
-import org.zuchos.free_monad_pipelines.{ ProfilingOps, TransformerOps, plan }
-import org.zuchos.free_monad_pipelines.model.{ DataModel, TableMetadata }
-import org.zuchos.free_monad_pipelines.plan.{ DateColumnTransformer, ExecutionJournal, Profiler, Transformer }
+import org.zuchos.free_monad_pipelines.domain.TableMetadata.{ ColumnName, ColumnType }
+import org.zuchos.free_monad_pipelines.domain
+import org.zuchos.free_monad_pipelines.domain.{DataModel, DateColumnTransformer, ExecutionJournal, Profiler, TableMetadata, Transformer}
 
 import org.apache.spark.sql._
 import org.apache.spark.sql.functions._
+import org.zuchos.free_monad_pipelines.application.{ProfilingOps, TransformerOps}
 
 object DataFrameOps {
 
@@ -76,8 +76,8 @@ object DataFrameOps {
   val ioProfilingOps: ProfilingOps[IO, DataFrame] = new ProfilingOps[IO, DataFrame] {
     override def applyProfiling[A](dataModel: DataModel[DataFrame], tableProfiler: Profiler[A]): IO[A] = {
       tableProfiler match {
-        case dd: plan.DateColumnsDetector => IO(new TableDateColumnsDetector(dd.tableName, dd.allColumns).detect(dataModel))
-        case dd: plan.NullRatioCalculator => IO(new NullRatioCalculator(dd.tableName, dd.nullableColumns).calculate(dataModel))
+        case dd: domain.DateColumnsDetector => IO(new TableDateColumnsDetector(dd.tableName, dd.allColumns).detect(dataModel))
+        case dd: domain.NullRatioCalculator => IO(new NullRatioCalculator(dd.tableName, dd.nullableColumns).calculate(dataModel))
       }
     }
   }

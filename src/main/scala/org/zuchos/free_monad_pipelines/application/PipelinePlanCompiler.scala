@@ -1,10 +1,9 @@
-package org.zuchos.free_monad_pipelines
+package org.zuchos.free_monad_pipelines.application
 
 import cats.implicits._
-import cats.mtl.{ Stateful, Tell }
-import cats.{ Monad, ~> }
-import org.zuchos.free_monad_pipelines.model.DataModel
-import org.zuchos.free_monad_pipelines.plan.{ ExecutionJournal, GetMetadata, PipelineStage, Profiler, Transformer }
+import cats.mtl.{Stateful, Tell}
+import cats.{Monad, ~>}
+import org.zuchos.free_monad_pipelines.domain._
 
 //region Monad capabilities
 

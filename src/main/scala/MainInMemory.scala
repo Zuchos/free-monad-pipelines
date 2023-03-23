@@ -1,8 +1,8 @@
 import cats.effect.unsafe.implicits.global
+import org.zuchos.free_monad_pipelines.application.PipelinePlanCompiler
 import org.zuchos.free_monad_pipelines.infra.in_memory.TableOps._
-import org.zuchos.free_monad_pipelines.{ PipelinePlanCompiler, plan }
-import org.zuchos.free_monad_pipelines.model.{ DataModel, TableMetadata }
-import org.zuchos.free_monad_pipelines.plan.{ PipelineAction, PipelinePlan, liftToTransformationPlan }
+import org.zuchos.free_monad_pipelines.domain
+import org.zuchos.free_monad_pipelines.domain.{DataModel, PipelineAction, PipelinePlan, TableMetadata, liftToTransformationPlan}
 
 object MainInMemory extends App {
   {
@@ -31,7 +31,7 @@ object MainInMemory extends App {
     val (
       dataModelAfterTraining: DataModel[Table] /* from State */,
       (
-        executionJournal: plan.ExecutionJournal /* from Writer aka AuditLog aka Journal */,
+        executionJournal: domain.ExecutionJournal /* from Writer aka AuditLog aka Journal */,
         profile: PipelinePlan.DataProfile /* "A" */
       )
     ) = compiledPipelinePlan.run.run(dataModelForTraining).unsafeRunSync()

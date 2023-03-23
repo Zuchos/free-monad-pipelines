@@ -2,10 +2,9 @@ package org.zuchos.free_monad_pipelines
 
 import cats.{ Applicative, Monoid }
 import cats.free.Free
-import org.zuchos.free_monad_pipelines.model.TableMetadata.{ ColumnName, ColumnType, TableName }
-import org.zuchos.free_monad_pipelines.model._
+import org.zuchos.free_monad_pipelines.domain.TableMetadata.{ ColumnName, ColumnType, TableName }
 
-package object plan {
+package object domain {
 
   //region Pipeline stages
 
